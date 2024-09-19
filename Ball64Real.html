@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jumping Ball Game</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background-color: #f5f5f5;
+            display: block;
+            margin: 0 auto;
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jumping Ball Game</h1>
+    <p>Press SPACE or TAP to jump over obstacles!</p>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const BALL_RADIUS = 20;
+        const GRAVITY = 0.6;
+        const JUMP_STRENGTH = -12;
+        const OBSTACLE_WIDTH = 50;
+        const OBSTACLE_SPEED = 5;
+
+        let ball = {
+            x: 100,
+            y: canvas.height - BALL_RADIUS - OBSTACLE_WIDTH,
+            yVelocity: 0,
+            isJumping: false
+        };
+
+        let obstacles = [];
+        let score = 0;
+        let lastObstacleTime = 0; // To control spacing between obstacles
+        const MIN_OBSTACLE_SPACING = 2000; // Minimum time in milliseconds between obstacles
+
+        function createObstacle() {
+            const obstacleHeight = Math.random() * (canvas.height / 5) + 20; // Random height, max 1/5 of canvas height
+            const obstacle = {
+                x: canvas.width,
+                y: canvas.height - obstacleHeight,
+                width: OBSTACLE_WIDTH,
+                height: obstacleHeight
+            };
+            obstacles.push(obstacle);
+        }
+
+        function jump() {
+            if (!ball.isJumping) {
+                ball.yVelocity = JUMP_STRENGTH;
+                ball.isJumping = true;
+            }
+        }
+
+        function updateBall() {
+            ball.yVelocity += GRAVITY;
+            ball.y += ball.yVelocity;
+
+            // Prevent the ball from falling through the ground
+            if (ball.y > canvas.height - BALL_RADIUS) {
+                ball.y = canvas.height - BALL_RADIUS;
+                ball.yVelocity = 0;
+                ball.isJumping = false;
+            }
+        }
+
+        function updateObstacles() {
+            for (let i = 0; i < obstacles.length; i++) {
+                const obstacle = obstacles[i];
+                obstacle.x -= OBSTACLE_SPEED;
+
+                // Remove obstacles that move off-screen
+                if (obstacle.x + OBSTACLE_WIDTH < 0) {
+                    obstacles.splice(i, 1);
+                    i--;
+                    score++;
+                }
+
+                // Check for collision
+                if (ball.x + BALL_RADIUS > obstacle.x && ball.x - BALL_RADIUS < obstacle.x + OBSTACLE_WIDTH) {
+                    if (ball.y + BALL_RADIUS > obstacle.y) {
+                        alert('Game Over! Your score: ' + score);
+                        document.location.reload();
+                    }
+                }
+            }
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = '#ff0000';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawObstacles() {
+            for (const obstacle of obstacles) {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            }
+        }
+
+        function drawScore() {
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText('Score: ' + score, 10, 30);
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updateBall();
+            updateObstacles();
+
+            drawBall();
+            drawObstacles();
+            drawScore();
+
+            // Randomly create new obstacles with adequate spacing
+            const now = Date.now();
+            if (now - lastObstacleTime > MIN_OBSTACLE_SPACING && Math.random() < 0.02) {
+                createObstacle();
+                lastObstacleTime = now;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Listen for keyboard (Space key)
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                jump();
+            }
+        });
+
+        // Listen for touch events (tap) on mobile
+        canvas.addEventListener('touchstart', () => {
+            jump();
+        });
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
